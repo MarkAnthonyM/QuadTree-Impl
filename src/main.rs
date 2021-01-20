@@ -1,3 +1,4 @@
+use log::{ debug, error };
 use pixels::{ Error, Pixels, SurfaceTexture };
 use winit::dpi::{ LogicalPosition, LogicalSize, PhysicalSize };
 use winit::event::{ Event, VirtualKeyCode };
@@ -12,6 +13,13 @@ const SCREEN_HEIGHT: u32 = 300;
 ********************/
 
 struct QuadTree {}
+
+impl QuadTree {
+    fn draw(&mut self, screen: &mut [u8]) {
+        // Clear screen
+        clear(screen);
+    }
+}
 
 fn create_window(
     title: &str,
@@ -52,7 +60,14 @@ fn create_window(
     (window, size.width.round() as u32, size.height.round() as u32, hidpi_factor)
 }
 
+fn clear(screen: &mut [u8]) {
+    for (i, byte) in screen.iter_mut().enumerate() {
+        *byte = if i % 4 == 3 { 255 } else { 0 };
+    }
+}
+
 fn main() -> Result<(), Error> {
+    env_logger::init();
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
     let (window, p_width, p_height, mut _hidpi_factor) =
@@ -65,7 +80,21 @@ fn main() -> Result<(), Error> {
 
     let mut draw_state: Option<bool> = None;
 
+    let mut quads = QuadTree {};
+
     event_loop.run(move |event, _, control_flow| {
+        if let Event::RedrawRequested(_) = event {
+            quads.draw(pixels.get_frame());
+
+            if pixels
+                .render()
+                .map_err(|e| error!("pixels.render() failed: {}", e))
+                .is_err() {
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
+        }
+        
         if input.update(&event) {
             if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
                 *control_flow = ControlFlow::Exit;
