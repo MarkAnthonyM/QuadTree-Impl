@@ -1,6 +1,8 @@
-use pixels::{ Error, Pixels };
+use pixels::{ Error, Pixels, SurfaceTexture };
 use winit::dpi::{ LogicalPosition, LogicalSize, PhysicalSize };
-use winit::event_loop::EventLoop;
+use winit::event::{ Event, VirtualKeyCode };
+use winit::event_loop::{ ControlFlow, EventLoop };
+use winit_input_helper::WinitInputHelper;
 
 const SCREEN_WIDTH: u32 = 400;
 const SCREEN_HEIGHT: u32 = 300;
@@ -44,6 +46,25 @@ fn create_window(
     (window, size.width.round() as u32, size.height.round() as u32, hidpi_factor)
 }
 
-fn main() {
-    println!("Hello, world!");
+fn main() -> Result<(), Error> {
+    let event_loop = EventLoop::new();
+    let mut input = WinitInputHelper::new();
+    let (window, p_width, p_height, mut _hidpi_factor) =
+        create_window("This is a test", &event_loop);
+    
+    let surface_texture = SurfaceTexture::new(p_width, p_height, &window);
+    
+    let mut pixels = Pixels::new(SCREEN_WIDTH, SCREEN_HEIGHT, surface_texture)?;
+    let mut paused = false;
+
+    let mut draw_state: Option<bool> = None;
+
+    event_loop.run(move |event, _, control_flow| {
+        if input.update(&event) {
+            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
+        }
+    })
 }
