@@ -7,6 +7,12 @@ use winit_input_helper::WinitInputHelper;
 const SCREEN_WIDTH: u32 = 400;
 const SCREEN_HEIGHT: u32 = 300;
 
+/********************
+    QuadTree Logic
+********************/
+
+struct QuadTree {}
+
 fn create_window(
     title: &str,
     event_loop: &EventLoop<()>
