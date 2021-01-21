@@ -100,6 +100,50 @@ fn main() -> Result<(), Error> {
                 *control_flow = ControlFlow::Exit;
                 return;
             }
+
+            let (mouse_cell, mouse_prev_cell) = input
+                .mouse()
+                .map(|(mx, my)| {
+                    // Mouse coordinates of last event step
+                    let (dx, dy) = input.mouse_diff();
+                    // Gather previous xy coordinates by subtracting current mouse
+                    // coordinates from last event step's coordinates
+                    let prev_x = mx - dx;
+                    let prev_y = my - dy;
+
+                    // Index that mouse currently resides in
+                    let (mx_i, my_i) = pixels
+                        .window_pos_to_pixel((mx, my))
+                        .unwrap_or_else(|pos| pixels.clamp_pixel_pos(pos));
+                    
+                    // Index that mouse previously residing in
+                    let (px_i, py_i) = pixels
+                        .window_pos_to_pixel((prev_x, prev_y))
+                        .unwrap_or_else(|pos| pixels.clamp_pixel_pos(pos));
+                    
+                    ((mx_i as isize, my_i as isize), (px_i as isize, py_i as isize))
+                })
+                .unwrap_or_default();
+            
+            if input.mouse_pressed(0) {
+                debug!("Mouse clicked at {:?}", mouse_cell);
+                draw_state = Some(true);
+            } else if let Some(draw_alive) = draw_state {
+                let release = input.mouse_released(0);
+                let held = input.mouse_held(0);
+                debug!("Draw at {:?} => {:?}", mouse_prev_cell, mouse_cell);
+                debug!("Mouse held {:?}, release {:?}", held, release);
+
+                if release || held {
+                    debug!("Draw line of {:?}", draw_alive);
+                }
+
+                if release || !held {
+                    debug!("Draw end");
+                    draw_state = None;
+                }
+            }
+            window.request_redraw();
         }
     })
 }
