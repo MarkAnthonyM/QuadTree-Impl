@@ -8,6 +8,22 @@ use winit_input_helper::WinitInputHelper;
 const SCREEN_WIDTH: u32 = 128;
 const SCREEN_HEIGHT: u32 = 128;
 
+struct SandBox {
+    buffer: Vec<usize>,
+}
+
+impl SandBox {
+    fn new() -> Self {
+        SandBox {
+            buffer: vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize],
+        }
+    }
+
+    fn draw(&mut self, frame: &mut [u8]) {
+        todo!()
+    }
+}
+
 /********************
     QuadTree Logic
 ********************/
@@ -143,13 +159,11 @@ fn main() -> Result<(), Error> {
 
     let mut draw_state: Option<bool> = None;
 
-    let mut root = QuadTree::<Leaf>::new();
-
-    let circle = Circle::new(50, 50);
+    let mut sand_box = SandBox::new();
 
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
-            root.draw(pixels.get_frame());
+            sand_box.draw(pixels.get_frame());
 
             if pixels
                 .render()
