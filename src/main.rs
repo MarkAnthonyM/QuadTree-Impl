@@ -53,7 +53,9 @@ impl<T> QuadTree<T> {
 *************************/
 
 struct Circle {
-    coordinates: (u8, u8),
+    color: [u8; 4],
+    coordinates: Point,
+    speed: u8,
 }
 
 fn create_window(
