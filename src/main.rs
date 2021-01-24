@@ -8,14 +8,25 @@ use winit_input_helper::WinitInputHelper;
 const SCREEN_WIDTH: u32 = 128;
 const SCREEN_HEIGHT: u32 = 128;
 
+const Palette: [[u8; 4]; 1] = [
+    [255, 255, 255, 0]
+];
+
 struct SandBox {
     buffer: Vec<usize>,
 }
 
 impl SandBox {
     fn new() -> Self {
+        let width = SCREEN_WIDTH as u8;
+        let height = SCREEN_HEIGHT as u8;
+        let mut initial_state = vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize];
+        let circle = Circle::new(50, 50);
+
+        initial_state[(circle.coordinates.y * width + circle.coordinates.x) as usize] = circle.color as usize;
+        
         SandBox {
-            buffer: vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize],
+            buffer: initial_state,
         }
     }
 
@@ -71,7 +82,7 @@ struct Leaf {}
 *************************/
 
 struct Circle {
-    color: [u8; 4],
+    color: u8,
     coordinates: Point,
     speed: u8,
 }
@@ -79,7 +90,7 @@ struct Circle {
 impl Circle {
     fn new(x: u8, y: u8) -> Self {
         Circle {
-            color: [255, 255, 255, 0],
+            color: 0,
             coordinates: Point::new(x, y),
             speed: 1,
         }
