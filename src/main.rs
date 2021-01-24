@@ -48,6 +48,8 @@ impl<T> QuadTree<T> {
     }
 }
 
+struct Leaf {}
+
 /*************************
     Circle Object Logic
 *************************/
@@ -122,7 +124,7 @@ fn main() -> Result<(), Error> {
 
     let mut draw_state: Option<bool> = None;
 
-    let mut root = QuadTree::<String>::new();
+    let mut root = QuadTree::<Leaf>::new();
 
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
