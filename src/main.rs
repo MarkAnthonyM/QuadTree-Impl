@@ -19,7 +19,7 @@ struct SandBox {
 
 impl SandBox {
     fn new() -> Self {
-        let width = SCREEN_WIDTH as u8;
+        let width = SCREEN_WIDTH as u32;
         let _height = SCREEN_HEIGHT as u8;
         let mut initial_state = vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize];
         let circle = Circle::new(50, 50);
@@ -91,7 +91,7 @@ struct Circle {
 }
 
 impl Circle {
-    fn new(x: u8, y: u8) -> Self {
+    fn new(x: u32, y: u32) -> Self {
         Circle {
             color: 0,
             coordinates: Point::new(x, y),
@@ -106,7 +106,7 @@ struct Point {
 }
 
 impl Point {
-    fn new(x: u8, y: u8) -> Self {
+    fn new(x: u32, y: u32) -> Self {
         Point {
             x,
             y,
