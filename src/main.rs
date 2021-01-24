@@ -85,9 +85,9 @@ struct Leaf {}
 *************************/
 
 struct Circle {
-    color: u8,
+    color: usize,
     coordinates: Point,
-    speed: u8,
+    speed: u32,
 }
 
 impl Circle {
