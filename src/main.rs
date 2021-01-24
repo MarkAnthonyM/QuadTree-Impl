@@ -101,8 +101,8 @@ impl Circle {
 }
 
 struct Point {
-    x: u8,
-    y: u8,
+    x: u32,
+    y: u32,
 }
 
 impl Point {
