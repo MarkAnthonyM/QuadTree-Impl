@@ -58,6 +58,11 @@ struct Circle {
     speed: u8,
 }
 
+struct Point {
+    x: u8,
+    y: u8,
+}
+
 fn create_window(
     title: &str,
     event_loop: &EventLoop<()>
