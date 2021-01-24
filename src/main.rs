@@ -5,8 +5,8 @@ use winit::event::{ Event, VirtualKeyCode };
 use winit::event_loop::{ ControlFlow, EventLoop };
 use winit_input_helper::WinitInputHelper;
 
-const SCREEN_WIDTH: u32 = 100;
-const SCREEN_HEIGHT: u32 = 50;
+const SCREEN_WIDTH: u32 = 128;
+const SCREEN_HEIGHT: u32 = 128;
 
 /********************
     QuadTree Logic
@@ -26,6 +26,14 @@ impl QuadTree {
     fn draw(&mut self, frame: &mut [u8]) {
         todo!()
     }
+}
+
+/*************************
+    Circle Object Logic
+*************************/
+
+struct Circle {
+    coordinates: (u8, u8),
 }
 
 fn create_window(
