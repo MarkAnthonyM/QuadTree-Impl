@@ -12,14 +12,34 @@ const SCREEN_HEIGHT: u32 = 128;
     QuadTree Logic
 ********************/
 
-struct QuadTree {
+struct QuadTree<T> {
     area: Vec<usize>,
+    point_count: u8,
+    point_limit: u8,
+    nw: Option<T>,
+    ne: Option<T>,
+    sw: Option<T>,
+    se: Option<T>,
 }
 
-impl QuadTree {
+impl<T> QuadTree<T> {
     fn new() -> Self {
         QuadTree {
             area: vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize],
+            point_count: 0,
+            point_limit: 1,
+            nw: None,
+            ne: None,
+            sw: None,
+            se: None,
+        }
+    }
+
+    fn insert(self) {
+        if self.point_count > 2 {
+            todo!();
+        } else if self.point_count > 0 {
+            todo!()
         }
     }
 
@@ -95,71 +115,70 @@ fn main() -> Result<(), Error> {
 
     let mut draw_state: Option<bool> = None;
 
-    let mut quad_tree = QuadTree::new();
+    let mut root = QuadTree::<String>::new();
 
-    // event_loop.run(move |event, _, control_flow| {
-    //     if let Event::RedrawRequested(_) = event {
-    //         quads.draw(pixels.get_frame());
+    event_loop.run(move |event, _, control_flow| {
+        if let Event::RedrawRequested(_) = event {
+            root.draw(pixels.get_frame());
 
-    //         if pixels
-    //             .render()
-    //             .map_err(|e| error!("pixels.render() failed: {}", e))
-    //             .is_err() {
-    //                 *control_flow = ControlFlow::Exit;
-    //                 return;
-    //             }
-    //     }
+            if pixels
+                .render()
+                .map_err(|e| error!("pixels.render() failed: {}", e))
+                .is_err() {
+                    *control_flow = ControlFlow::Exit;
+                    return;
+                }
+        }
         
-    //     if input.update(&event) {
-    //         if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
-    //             *control_flow = ControlFlow::Exit;
-    //             return;
-    //         }
+        if input.update(&event) {
+            if input.key_pressed(VirtualKeyCode::Escape) || input.quit() {
+                *control_flow = ControlFlow::Exit;
+                return;
+            }
 
-    //         let (mouse_cell, mouse_prev_cell) = input
-    //             .mouse()
-    //             .map(|(mx, my)| {
-    //                 // Mouse coordinates of last event step
-    //                 let (dx, dy) = input.mouse_diff();
-    //                 // Gather previous xy coordinates by subtracting current mouse
-    //                 // coordinates from last event step's coordinates
-    //                 let prev_x = mx - dx;
-    //                 let prev_y = my - dy;
+            let (mouse_cell, mouse_prev_cell) = input
+                .mouse()
+                .map(|(mx, my)| {
+                    // Mouse coordinates of last event step
+                    let (dx, dy) = input.mouse_diff();
+                    // Gather previous xy coordinates by subtracting current mouse
+                    // coordinates from last event step's coordinates
+                    let prev_x = mx - dx;
+                    let prev_y = my - dy;
 
-    //                 // Index that mouse currently resides in
-    //                 let (mx_i, my_i) = pixels
-    //                     .window_pos_to_pixel((mx, my))
-    //                     .unwrap_or_else(|pos| pixels.clamp_pixel_pos(pos));
+                    // Index that mouse currently resides in
+                    let (mx_i, my_i) = pixels
+                        .window_pos_to_pixel((mx, my))
+                        .unwrap_or_else(|pos| pixels.clamp_pixel_pos(pos));
                     
-    //                 // Index that mouse previously residing in
-    //                 let (px_i, py_i) = pixels
-    //                     .window_pos_to_pixel((prev_x, prev_y))
-    //                     .unwrap_or_else(|pos| pixels.clamp_pixel_pos(pos));
+                    // Index that mouse previously residing in
+                    let (px_i, py_i) = pixels
+                        .window_pos_to_pixel((prev_x, prev_y))
+                        .unwrap_or_else(|pos| pixels.clamp_pixel_pos(pos));
                     
-    //                 ((mx_i as isize, my_i as isize), (px_i as isize, py_i as isize))
-    //             })
-    //             .unwrap_or_default();
+                    ((mx_i as isize, my_i as isize), (px_i as isize, py_i as isize))
+                })
+                .unwrap_or_default();
             
-    //         if input.mouse_pressed(0) {
-    //             debug!("Mouse clicked at {:?}", mouse_cell);
-    //             draw_state = Some(true);
-    //         } else if let Some(draw_alive) = draw_state {
-    //             let release = input.mouse_released(0);
-    //             let held = input.mouse_held(0);
-    //             debug!("Draw at {:?} => {:?}", mouse_prev_cell, mouse_cell);
-    //             debug!("Mouse held {:?}, release {:?}", held, release);
+            if input.mouse_pressed(0) {
+                debug!("Mouse clicked at {:?}", mouse_cell);
+                draw_state = Some(true);
+            } else if let Some(draw_alive) = draw_state {
+                let release = input.mouse_released(0);
+                let held = input.mouse_held(0);
+                debug!("Draw at {:?} => {:?}", mouse_prev_cell, mouse_cell);
+                debug!("Mouse held {:?}, release {:?}", held, release);
 
-    //             if release || held {
-    //                 debug!("Draw line of {:?}", draw_alive);
-    //             }
+                if release || held {
+                    debug!("Draw line of {:?}", draw_alive);
+                }
 
-    //             if release || !held {
-    //                 debug!("Draw end");
-    //                 draw_state = None;
-    //             }
-    //         }
-    //         window.request_redraw();
-    //     }
-    // })
-    Ok(())
+                if release || !held {
+                    debug!("Draw end");
+                    draw_state = None;
+                }
+            }
+            window.request_redraw();
+        }
+    })
 }
