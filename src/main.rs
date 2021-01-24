@@ -75,6 +75,15 @@ struct Point {
     y: u8,
 }
 
+impl Point {
+    fn new(x: u8, y: u8) -> Self {
+        Point {
+            x,
+            y,
+        }
+    }
+}
+
 fn create_window(
     title: &str,
     event_loop: &EventLoop<()>
