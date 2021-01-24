@@ -15,6 +15,7 @@ const Palette: [[u8; 4]; 2] = [
 
 struct SandBox {
     buffer: Vec<usize>,
+    circles: Vec<Circle>,
 }
 
 impl SandBox {
@@ -28,6 +29,7 @@ impl SandBox {
         
         SandBox {
             buffer: initial_state,
+            circles: vec![circle],
         }
     }
 
@@ -93,7 +95,7 @@ struct Circle {
 impl Circle {
     fn new(x: u32, y: u32) -> Self {
         Circle {
-            color: 0,
+            color: 1,
             coordinates: Point::new(x, y),
             speed: 1,
         }
