@@ -39,7 +39,7 @@ impl<T> QuadTree<T> {
         if self.point_count > 2 {
             todo!();
         } else if self.point_count > 0 {
-            todo!()
+            todo!();
         }
     }
 
@@ -58,6 +58,16 @@ struct Circle {
     color: [u8; 4],
     coordinates: Point,
     speed: u8,
+}
+
+impl Circle {
+    fn new(x: u8, y: u8) -> Self {
+        Circle {
+            color: [255, 255, 255, 0],
+            coordinates: Point::new(x, y),
+            speed: 1,
+        }
+    }
 }
 
 struct Point {
@@ -125,6 +135,8 @@ fn main() -> Result<(), Error> {
     let mut draw_state: Option<bool> = None;
 
     let mut root = QuadTree::<Leaf>::new();
+
+    let circle = Circle::new(50, 50);
 
     event_loop.run(move |event, _, control_flow| {
         if let Event::RedrawRequested(_) = event {
