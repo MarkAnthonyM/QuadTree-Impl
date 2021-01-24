@@ -8,8 +8,9 @@ use winit_input_helper::WinitInputHelper;
 const SCREEN_WIDTH: u32 = 128;
 const SCREEN_HEIGHT: u32 = 128;
 
-const Palette: [[u8; 4]; 1] = [
-    [255, 255, 255, 0]
+const Palette: [[u8; 4]; 2] = [
+    [255, 255, 255, 0],
+    [0, 0, 0, 0],
 ];
 
 struct SandBox {
@@ -19,11 +20,11 @@ struct SandBox {
 impl SandBox {
     fn new() -> Self {
         let width = SCREEN_WIDTH as u8;
-        let height = SCREEN_HEIGHT as u8;
+        let _height = SCREEN_HEIGHT as u8;
         let mut initial_state = vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize];
         let circle = Circle::new(50, 50);
 
-        initial_state[(circle.coordinates.y * width + circle.coordinates.x) as usize] = circle.color as usize;
+        initial_state[(circle.coordinates.y * width + circle.coordinates.x) as usize] = circle.color;
         
         SandBox {
             buffer: initial_state,
@@ -31,7 +32,9 @@ impl SandBox {
     }
 
     fn draw(&mut self, frame: &mut [u8]) {
-        todo!()
+        for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
+            pixel.copy_from_slice(&Palette[self.buffer[i]]);
+        }
     }
 }
 
