@@ -8,7 +8,7 @@ use winit_input_helper::WinitInputHelper;
 const SCREEN_WIDTH: u32 = 128;
 const SCREEN_HEIGHT: u32 = 128;
 
-const Palette: [[u8; 4]; 2] = [
+const PALETTE: [[u8; 4]; 2] = [
     [255, 255, 255, 0],
     [0, 0, 0, 0],
 ];
@@ -16,6 +16,7 @@ const Palette: [[u8; 4]; 2] = [
 struct SandBox {
     buffer: Vec<usize>,
     circles: Vec<Circle>,
+    frame_count: u32,
 }
 
 impl SandBox {
@@ -23,19 +24,49 @@ impl SandBox {
         let width = SCREEN_WIDTH as u32;
         let _height = SCREEN_HEIGHT as u8;
         let mut initial_state = vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize];
-        let circle = Circle::new(50, 50);
+        let circle = Circle::new(20, 50);
+        let frame_count = 0;
 
         initial_state[(circle.coordinates.y * width + circle.coordinates.x) as usize] = circle.color;
         
         SandBox {
             buffer: initial_state,
             circles: vec![circle],
+            frame_count,
+        }
+    }
+
+    fn clear(&mut self) {
+        for pixel in self.buffer.iter_mut() {
+            *pixel = 0;
+        }
+    }
+
+    fn update(&mut self) {
+        self.clear();
+
+        // Increment frame count on every draw
+        self.frame_count += 1;
+
+        // Step circle pixel back and forth between quadrants
+        let amplitude = 4.0;
+        let two_pi = 2.0 * std::f64::consts::PI;
+        let period = 100.0;
+        let frame_count = self.frame_count as f64;
+        let oscillation = (amplitude * f64::sin(two_pi * (frame_count / period))) as i32;
+
+        for circle in self.circles.iter_mut() {
+            let current_x = circle.coordinates.x as i32 + oscillation;
+            circle.coordinates.x = current_x as u32;
+            
+            let src = (circle.coordinates.y * SCREEN_WIDTH + circle.coordinates.x) as usize;
+            self.buffer[src] = circle.color;
         }
     }
 
     fn draw(&mut self, frame: &mut [u8]) {
         for (i, pixel) in frame.chunks_exact_mut(4).enumerate() {
-            pixel.copy_from_slice(&Palette[self.buffer[i]]);
+            pixel.copy_from_slice(&PALETTE[self.buffer[i]]);
         }
     }
 }
@@ -238,6 +269,8 @@ fn main() -> Result<(), Error> {
                     draw_state = None;
                 }
             }
+
+            sand_box.update();
             window.request_redraw();
         }
     })
