@@ -244,6 +244,8 @@ impl Leaf {
             let processed_new_leaf = new_leaf.insert(obj);
 
             // Generate New node, and store new and previous leaf structs
+            //TODO: QuadTree node is generating with wrong area. Does it even
+            // need data about 2D area? Find out.
             let mut generate_node = QuadTree::new(split_width, split_height);
             // let mut generate_node = QuadTree::new(self.width, self.height);
             let prev_quadrant = Quadrant::check_quadrant(prev_data, split_width, split_height);
