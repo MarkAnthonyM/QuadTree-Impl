@@ -221,6 +221,8 @@ impl Leaf {
         let noooooooo = 0;
     }
 
+    //TODO: Find way to adjust point coordinates based
+    // on quadrant point resides in
     fn insert(&mut self, obj: (u32, u32)) -> Branch {
         if self.is_empty {
             // self.data_point = Some(obj);
