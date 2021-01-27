@@ -1,12 +1,13 @@
 use log::{ debug, error };
 use pixels::{ Error, Pixels, SurfaceTexture };
+use std::rc::Rc;
 use winit::dpi::{ LogicalPosition, LogicalSize, PhysicalSize };
 use winit::event::{ Event, VirtualKeyCode };
 use winit::event_loop::{ ControlFlow, EventLoop };
 use winit_input_helper::WinitInputHelper;
 
-const SCREEN_WIDTH: u32 = 128;
-const SCREEN_HEIGHT: u32 = 128;
+const SCREEN_WIDTH: u32 = 127;
+const SCREEN_HEIGHT: u32 = 127;
 
 const PALETTE: [[u8; 4]; 2] = [
     [255, 255, 255, 0],
@@ -24,14 +25,17 @@ impl SandBox {
         let width = SCREEN_WIDTH as u32;
         let _height = SCREEN_HEIGHT as u8;
         let mut initial_state = vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize];
-        let circle = Circle::new(20, 50);
+        let circle = Circle::new(20, 50, 1);
+        let circle_2 = Circle::new(120, 30, -1);
+        let circle_3 = Circle::new(20, 80, 1);
+        let circle_4 = Circle::new(100, 40, -1);
         let frame_count = 0;
 
         initial_state[(circle.coordinates.y * width + circle.coordinates.x) as usize] = circle.color;
         
         SandBox {
             buffer: initial_state,
-            circles: vec![circle],
+            circles: vec![circle, circle_2, circle_3, circle_4],
             frame_count,
         }
     }
@@ -55,12 +59,32 @@ impl SandBox {
         let frame_count = self.frame_count as f64;
         let oscillation = (amplitude * f64::sin(two_pi * (frame_count / period))) as i32;
 
+        // Update position of circles based on oscillation calculation
         for circle in self.circles.iter_mut() {
-            let current_x = circle.coordinates.x as i32 + oscillation;
+            let current_x = if circle.direction > 0 {
+                circle.coordinates.x as i32 + oscillation
+            } else {
+                circle.coordinates.x as i32 - oscillation
+            };
             circle.coordinates.x = current_x as u32;
             
             let src = (circle.coordinates.y * SCREEN_WIDTH + circle.coordinates.x) as usize;
             self.buffer[src] = circle.color;
+        }
+
+        if !self.circles.is_empty() {
+            let leaf = Leaf::new(SCREEN_WIDTH, SCREEN_HEIGHT);
+            let mut root = Branch::Leaf(leaf);
+            let mut iter_count = 0;
+            for circle in self.circles.iter() {
+                let current_coords = (circle.coordinates.x, circle.coordinates.y);
+                root = root.insert(current_coords);
+                iter_count += 1;
+                if iter_count == 4 {
+                    println!("{:#?}", root);
+                    panic!("this is a test");
+                }
+            }
         }
     }
 
@@ -75,43 +99,215 @@ impl SandBox {
     QuadTree Logic
 ********************/
 
-struct QuadTree<T> {
-    area: Vec<usize>,
+// struct QuadTree<T> {
+//     area: Vec<usize>,
+//     point_count: u8,
+//     point_limit: u8,
+//     nw: Option<T>,
+//     ne: Option<T>,
+//     sw: Option<T>,
+//     se: Option<T>,
+// }
+
+// impl<T> QuadTree<T> {
+//     fn new() -> Self {
+//         QuadTree {
+//             area: vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize],
+//             point_count: 0,
+//             point_limit: 1,
+//             nw: None,
+//             ne: None,
+//             sw: None,
+//             se: None,
+//         }
+//     }
+
+//     fn insert(self) {
+//         if self.point_count > 2 {
+//             todo!();
+//         } else if self.point_count > 0 {
+//             todo!();
+//         }
+//     }
+
+//     fn draw(&mut self, frame: &mut [u8]) {
+//         todo!()
+//     }
+// }
+
+#[derive(Clone, Debug)]
+struct QuadTree {
+    area: u32,
+    width: u32,
+    height: u32,
     point_count: u8,
     point_limit: u8,
-    nw: Option<T>,
-    ne: Option<T>,
-    sw: Option<T>,
-    se: Option<T>,
+    nw: Box<Branch>,
+    ne: Box<Branch>,
+    sw: Box<Branch>,
+    se: Box<Branch>,
 }
 
-impl<T> QuadTree<T> {
-    fn new() -> Self {
+impl QuadTree {
+    fn new(width: u32, height: u32) -> Self {
         QuadTree {
-            area: vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize],
+            area: width * height,
+            width,
+            height,
             point_count: 0,
             point_limit: 1,
-            nw: None,
-            ne: None,
-            sw: None,
-            se: None,
+            nw: Box::new(Branch::Leaf(Leaf::new(width, height))),
+            ne: Box::new(Branch::Leaf(Leaf::new(width, height))),
+            sw: Box::new(Branch::Leaf(Leaf::new(width, height))),
+            se: Box::new(Branch::Leaf(Leaf::new(width, height))),
         }
     }
 
-    fn insert(self) {
-        if self.point_count > 2 {
-            todo!();
-        } else if self.point_count > 0 {
-            todo!();
+    fn insert(&mut self, data: (u32, u32)) -> Branch {
+        let quad_location = Quadrant::check_quadrant(data, self.width, self.height);
+        match quad_location {
+            Quadrant::Nw => {
+                self.nw = Box::new(self.nw.insert(data));
+            },
+            Quadrant::Ne => {
+                self.ne = Box::new(self.ne.insert(data));
+            },
+            Quadrant::Sw => {
+                self.sw = Box::new(self.sw.insert(data));
+            },
+            Quadrant::Se => {
+                self.se = Box::new(self.se.insert(data));
+            },
         }
+
+        // println!("{:#?}", self);
+        Branch::Node(self.clone())
     }
 
-    fn draw(&mut self, frame: &mut [u8]) {
-        todo!()
+    fn draw(&self, buffer: &mut Vec<usize>) {
+        for x in 0..self.width * 2 {
+            let src = x as usize;
+            buffer[src] = 1;
+        }
+
+        for i in 0..self.height {
+            let src = i * self.width;
+            buffer[src as usize] = 1;
+        }
     }
 }
 
-struct Leaf {}
+#[derive(Clone, Debug)]
+struct Leaf {
+    width: u32,
+    height: u32,
+    area: u32,
+    data_point: Option<(u32, u32)>,
+    is_empty: bool,
+}
+
+impl Leaf {
+    fn new(width: u32, height: u32) -> Self {
+        Self {
+            width,
+            height,
+            area: width * height,
+            data_point: None,
+            is_empty: true,
+        }
+    }
+
+    fn draw(&self) {
+        let noooooooo = 0;
+    }
+
+    fn insert(&mut self, obj: (u32, u32)) -> Branch {
+        if self.is_empty {
+            // self.data_point = Some(obj);
+            // self.is_empty = false;
+            let mut leaf = Leaf::new(self.width, self.height);
+            leaf.data_point = Some(obj);
+            leaf.is_empty = false;
+
+            Branch::Leaf(leaf)
+        } else {
+            // Split areas
+            let total_area = self.width * self.height;
+            let split_width = self.width / 2;
+            let split_height = self.height / 2;
+            // Initialze previous and new leaf using previous and new data
+            let prev_data = self.data_point.unwrap();
+            let mut prev_leaf = Leaf::new(split_width, split_height);
+            let mut new_leaf = Leaf::new(split_width, split_height);
+            // Recursive magic starts here
+            let processed_prev_leaf = prev_leaf.insert(prev_data);
+            let processed_new_leaf = new_leaf.insert(obj);
+
+            // Generate New node, and store new and previous leaf structs
+            let mut generate_node = QuadTree::new(split_width, split_height);
+            // let mut generate_node = QuadTree::new(self.width, self.height);
+            let prev_quadrant = Quadrant::check_quadrant(prev_data, split_width, split_height);
+            let new_quandrant = Quadrant::check_quadrant(obj, split_width, split_height);
+            match prev_quadrant {
+                Quadrant::Nw => {
+                    generate_node.nw = Box::new(processed_prev_leaf)
+                },
+                Quadrant::Ne => {
+                    generate_node.ne = Box::new(processed_prev_leaf)
+                },
+                Quadrant::Sw => {
+                    generate_node.sw = Box::new(processed_prev_leaf)
+                },
+                Quadrant::Se => {
+                    generate_node.se = Box::new(processed_prev_leaf)
+                },
+            }
+
+            match new_quandrant {
+                Quadrant::Nw => {
+                    generate_node.nw = Box::new(processed_new_leaf)
+                },
+                Quadrant::Ne => {
+                    generate_node.ne = Box::new(processed_new_leaf)
+                },
+                Quadrant::Sw => {
+                    generate_node.sw = Box::new(processed_new_leaf)
+                },
+                Quadrant::Se => {
+                    generate_node.se = Box::new(processed_new_leaf)
+                },
+            }
+            
+            Branch::Node(generate_node)
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
+enum Branch {
+    Node(QuadTree),
+    Leaf(Leaf),
+}
+
+impl Branch {
+    fn insert(&mut self, data: (u32, u32)) -> Branch {
+        match self {
+            Branch::Leaf(leaf) => {
+                leaf.insert(data)
+            },
+            Branch::Node(node) => {
+                node.insert(data)
+            },
+        }
+    }
+
+    fn draw(&self, buffer: &mut Vec<usize>) {
+        match self {
+            Branch::Leaf(leaf) => leaf.draw(),
+            Branch::Node(node) => node.draw(buffer),
+        }
+    }
+}
 
 /*************************
     Circle Object Logic
@@ -120,16 +316,41 @@ struct Leaf {}
 struct Circle {
     color: usize,
     coordinates: Point,
+    direction: i32,
     speed: u32,
 }
 
 impl Circle {
-    fn new(x: u32, y: u32) -> Self {
+    fn new(x: u32, y: u32, direction: i32) -> Self {
         Circle {
             color: 1,
             coordinates: Point::new(x, y),
+            direction,
             speed: 1,
         }
+    }
+}
+
+#[derive(Debug)]
+enum Quadrant {
+    Nw,
+    Ne,
+    Sw,
+    Se,
+}
+
+impl Quadrant {
+    fn check_quadrant(obj_coord: (u32, u32), width: u32, height: u32) -> Quadrant {
+        let (current_x, current_y) = (obj_coord.0, obj_coord.1);
+        if current_x < width && current_y < height {
+            return Quadrant::Nw
+        } else if current_x > width && current_y < height {
+            return Quadrant::Ne
+        } else if current_x < width && current_y > height {
+            return Quadrant::Sw
+        } else {
+            return Quadrant::Se
+        };
     }
 }
 
