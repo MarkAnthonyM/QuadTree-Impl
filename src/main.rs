@@ -28,7 +28,7 @@ impl SandBox {
         let circle = Circle::new(20, 50, 1);
         let circle_2 = Circle::new(120, 30, -1);
         let circle_3 = Circle::new(20, 80, 1);
-        let circle_4 = Circle::new(100, 40, -1);
+        let circle_4 = Circle::new(90, 40, -1);
         let frame_count = 0;
 
         initial_state[(circle.coordinates.y * width + circle.coordinates.x) as usize] = circle.color;
@@ -53,7 +53,7 @@ impl SandBox {
         self.frame_count += 1;
 
         // Step circle pixel back and forth between quadrants
-        let amplitude = 4.0;
+        let amplitude = 3.0;
         let two_pi = 2.0 * std::f64::consts::PI;
         let period = 100.0;
         let frame_count = self.frame_count as f64;
@@ -79,11 +79,11 @@ impl SandBox {
             for circle in self.circles.iter() {
                 let current_coords = (circle.coordinates.x, circle.coordinates.y);
                 root = root.insert(current_coords);
-                iter_count += 1;
-                if iter_count == 4 {
-                    println!("{:#?}", root);
-                    panic!("this is a test");
-                }
+                // iter_count += 1;
+                // if iter_count == 3 {
+                //     println!("{:#?}", root);
+                //     panic!("this is a test");
+                // }
             }
         }
     }
@@ -180,7 +180,6 @@ impl QuadTree {
             },
         }
 
-        // println!("{:#?}", self);
         Branch::Node(self.clone())
     }
 
@@ -234,24 +233,42 @@ impl Leaf {
             Branch::Leaf(leaf)
         } else {
             // Split areas
-            let total_area = self.width * self.height;
             let split_width = self.width / 2;
             let split_height = self.height / 2;
-            // Initialze previous and new leaf using previous and new data
+            // Find previous data's old quadrant
+            // Adjust previous data's coordiantes based on old quadrant
             let prev_data = self.data_point.unwrap();
+            let prev_data_updated = match Quadrant::check_quadrant(prev_data, self.width, self.height) {
+                Quadrant::Nw => prev_data,
+                Quadrant::Ne => (prev_data.0 - self.width, prev_data.1),
+                Quadrant::Sw => (prev_data.0, prev_data.1 - self.height),
+                //BUG: Hitting overflow problem here
+                Quadrant::Se => (prev_data.0 - self.width, prev_data.1 - self.height),
+            };
+            // Adjust new data's coordinates given current parent node
+            let new_data_updated = match Quadrant::check_quadrant(obj, self.width, self.height) {
+                Quadrant::Nw => obj,
+                Quadrant::Ne => (obj.0 - self.width, obj.1),
+                Quadrant::Sw => (obj.0, obj.1 - self.height),
+                Quadrant::Se => (obj.0 -self.width, obj.1 - self.height),
+            };
+            // Initialze previous and new leaf using previous and new data
             let mut prev_leaf = Leaf::new(split_width, split_height);
             let mut new_leaf = Leaf::new(split_width, split_height);
             // Recursive magic starts here
-            let processed_prev_leaf = prev_leaf.insert(prev_data);
-            let processed_new_leaf = new_leaf.insert(obj);
+            let processed_prev_leaf = prev_leaf.insert(prev_data_updated);
+            let processed_new_leaf = new_leaf.insert(new_data_updated);
 
             // Generate New node, and store new and previous leaf structs
             //TODO: QuadTree node is generating with wrong area. Does it even
             // need data about 2D area? Find out.
             let mut generate_node = QuadTree::new(split_width, split_height);
+            //TODO: Should maybe insert into QuadTree node here?
             // let mut generate_node = QuadTree::new(self.width, self.height);
-            let prev_quadrant = Quadrant::check_quadrant(prev_data, split_width, split_height);
-            let new_quandrant = Quadrant::check_quadrant(obj, split_width, split_height);
+            
+            // Find new quadrants based on point's adjusted coordinates
+            let prev_quadrant = Quadrant::check_quadrant(prev_data_updated, split_width, split_height);
+            let new_quandrant = Quadrant::check_quadrant(new_data_updated, split_width, split_height);
             match prev_quadrant {
                 Quadrant::Nw => {
                     generate_node.nw = Box::new(processed_prev_leaf)
