@@ -6,8 +6,8 @@ use winit::event::{ Event, VirtualKeyCode };
 use winit::event_loop::{ ControlFlow, EventLoop };
 use winit_input_helper::WinitInputHelper;
 
-const SCREEN_WIDTH: u32 = 127;
-const SCREEN_HEIGHT: u32 = 127;
+const SCREEN_WIDTH: u32 = 128;
+const SCREEN_HEIGHT: u32 = 128;
 
 const PALETTE: [[u8; 4]; 2] = [
     [255, 255, 255, 0],
