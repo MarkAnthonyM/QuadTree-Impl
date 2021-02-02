@@ -27,17 +27,17 @@ impl SandBox {
         let _height = SCREEN_HEIGHT as u8;
         let mut initial_state = vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize];
         let circle = Circle::new(20, 50, 1);
-        let circle_2 = Circle::new(120, 30, -1);
-        let circle_3 = Circle::new(20, 80, 1);
+        let circle_2 = Circle::new(25, 30, 1);
+        let circle_3 = Circle::new(40, 20, 1);
         let circle_4 = Circle::new(90, 40, -1);
         let circle_5 = Circle::new(85, 40, -1);
         let frame_count = 0;
 
-        initial_state[(circle.coordinates.y * width + circle.coordinates.x) as usize] = circle.color;
+        // initial_state[(circle.coordinates.y * width + circle.coordinates.x) as usize] = circle.color;
         
         SandBox {
             buffer: initial_state,
-            circles: vec![circle, circle_2],
+            circles: vec![circle_2, circle_3],
             frame_count,
         }
     }
@@ -81,17 +81,17 @@ impl SandBox {
             for circle in self.circles.iter() {
                 let current_coords = (circle.coordinates.x, circle.coordinates.y);
                 root = root.insert(current_coords, &mut self.buffer);
-                root.draw(&mut self.buffer);
+                // root.draw(&mut self.buffer);
                 // println!("{:#?}", root);
-                iter_count += 1;
-                if iter_count % 2 == 0 {
-                    println!("{:#?}", root);
-                    // panic!("this is a test");
+                if iter_count == 1 {
+                    // println!("{:#?}", root);
+                    panic!("this is a test");
                 }
+                iter_count += 1;
             }
         }
 
-        let one_sec = time::Duration::from_millis(300);
+        let one_sec = time::Duration::from_millis(1000);
         thread::sleep(one_sec);
     }
 
@@ -153,7 +153,7 @@ struct QuadTree {
     ne: Box<Branch>,
     sw: Box<Branch>,
     se: Box<Branch>,
-    sub_node: bool,
+    quad_location: Option<Quadrant>,
 }
 
 impl QuadTree {
@@ -168,7 +168,7 @@ impl QuadTree {
             ne: Box::new(Branch::Leaf(Leaf::new(width, height))),
             sw: Box::new(Branch::Leaf(Leaf::new(width, height))),
             se: Box::new(Branch::Leaf(Leaf::new(width, height))),
-            sub_node: false,
+            quad_location: None,
         }
     }
 
@@ -203,20 +203,41 @@ impl QuadTree {
         Branch::Node(self.clone())
     }
 
-    fn draw(&self, buffer: &mut Vec<usize>) {
-        // // Set total height/width of pixel buffer
+    fn draw(&self, buffer: &mut Vec<usize>, location: Quadrant) {
+        // Set total height/width of pixel buffer
         let width = self.width * 2;
         let height = self.height * 2;
+        // let draw_area = match self.quad_location {
+        //     Some(ref quadrant) => {
+        //         match quadrant {
+        //             Quadrant::Nw => (0, 0),
+        //             Quadrant::Ne => (self.width / 2, 0),
+        //             Quadrant::Sw => (0, self.height / 2),
+        //             Quadrant::Se => (self.width /2, self.height / 2),
+        //         }
+        //     },
+        //     None => {
+        //         (0, 0)
+        //     }
+        // };
+        let shift_point = match location {
+            Quadrant::Nw => (0, 0),
+            Quadrant::Ne => (self.width * 2, 0),
+            Quadrant::Sw => (0, self.height),
+            Quadrant::Se => (self.width, self.height),
+        };
         
         // Fill quadtree cross section
         for y in 0..height {
             for x in 0..width {
                 if x == self.width {
-                    buffer[(y * SCREEN_WIDTH + x) as usize] = 1;
+                    let src = ((y + shift_point.1) * SCREEN_WIDTH + (x + shift_point.0)) as usize;
+                    buffer[src] = 1;
                 }
 
                 if y == self.height {
-                    buffer[(y * SCREEN_WIDTH + x) as usize] = 1;
+                    let src = ((y + shift_point.1) * SCREEN_WIDTH + (x + shift_point.0)) as usize;
+                    buffer[src] = 1;
                 }
             }
         }
@@ -259,7 +280,7 @@ impl Leaf {
 
     //TODO: Find way to adjust point coordinates based
     // on quadrant point resides in
-    fn insert(&mut self, obj: (u32, u32)) -> Branch {
+    fn insert(&mut self, obj: (u32, u32), buffer: &mut Vec<usize>) -> Branch {
         if self.is_empty {
             // self.data_point = Some(obj);
             // self.is_empty = false;
@@ -275,6 +296,7 @@ impl Leaf {
             // Find previous data's old quadrant
             // Adjust previous data's coordiantes based on old quadrant
             let prev_data = self.data_point.unwrap();
+            println!("{:?}", self.width);
             let prev_data_updated = match Quadrant::check_quadrant(prev_data, self.width, self.height) {
                 Quadrant::Nw => prev_data,
                 Quadrant::Ne => (prev_data.0 - self.width, prev_data.1),
@@ -287,14 +309,14 @@ impl Leaf {
                 Quadrant::Nw => obj,
                 Quadrant::Ne => (obj.0 - self.width, obj.1),
                 Quadrant::Sw => (obj.0, obj.1 - self.height),
-                Quadrant::Se => (obj.0 -self.width, obj.1 - self.height),
+                Quadrant::Se => (obj.0 - self.width, obj.1 - self.height),
             };
             // Initialze previous and new leaf using previous and new data
             let mut prev_leaf = Leaf::new(split_width, split_height);
             let mut new_leaf = Leaf::new(split_width, split_height);
             // Recursive magic starts here
-            let processed_prev_leaf = prev_leaf.insert(prev_data_updated);
-            let processed_new_leaf = new_leaf.insert(new_data_updated);
+            let processed_prev_leaf = prev_leaf.insert(prev_data_updated, buffer);
+            let processed_new_leaf = new_leaf.insert(new_data_updated, buffer);
 
             // Generate New node, and store new and previous leaf structs
             //TODO: QuadTree node is generating with wrong area. Does it even
@@ -302,7 +324,23 @@ impl Leaf {
             let mut generate_node = QuadTree::new(split_width, split_height);
             //TODO: Should maybe insert into QuadTree node here?
             // let mut generate_node = QuadTree::new(self.width, self.height);
-            
+            // Draw routine
+            let draw_quad = Quadrant::check_quadrant(obj, generate_node.width, generate_node.height);
+            let draw_width = generate_node.width;
+            let draw_height = generate_node.height;
+            for y in 0..draw_height * 2 {
+                for x in 0..draw_width * 2 {
+                    if x == draw_width {
+                        let src = y * SCREEN_WIDTH + x;
+                        buffer[src as usize] = 1;
+                    }
+
+                    if y == draw_height {
+                        let src = y * SCREEN_WIDTH + x;
+                        buffer[src as usize] = 1;
+                    }
+                }
+            }
             // Find new quadrants based on point's adjusted coordinates
             let prev_quadrant = Quadrant::check_quadrant(prev_data_updated, split_width, split_height);
             let new_quandrant = Quadrant::check_quadrant(new_data_updated, split_width, split_height);
@@ -321,21 +359,48 @@ impl Leaf {
                 },
             }
 
+            //TODO: Fix bug in logic here. Logic currently overwrites previous leaf
+            // if one exists in the same quadrant as the new leaf. Probably need to make use
+            // of recursive insert logic here?
             match new_quandrant {
                 Quadrant::Nw => {
-                    generate_node.nw = Box::new(processed_new_leaf)
+                    // generate_node.nw = Box::new(processed_new_leaf)
+                    generate_node.nw = Box::new(generate_node.nw.insert(new_data_updated, buffer));
+                    match *generate_node.nw {
+                        Branch::Leaf(_) => {},
+                        Branch::Node(ref node) => {
+                            let node_location = Quadrant::Nw;
+                            // node.draw(buffer, node_location);
+                        }
+                    }
+                    // generate_node.quad_location = Some(Quadrant::Nw);
                 },
                 Quadrant::Ne => {
-                    generate_node.ne = Box::new(processed_new_leaf)
+                    // generate_node.ne = Box::new(processed_new_leaf);
+                    generate_node.ne = Box::new(generate_node.ne.insert(new_data_updated, buffer));
+                    match *generate_node.ne {
+                        Branch::Leaf(_) => {},
+                        Branch::Node(ref node) => {
+                            let node_location = Quadrant::Ne;
+                            // node.draw(buffer, node_location);
+                        }
+                    }
+                    // generate_node.quad_location = Some(Quadrant::Ne);
                 },
                 Quadrant::Sw => {
-                    generate_node.sw = Box::new(processed_new_leaf)
+                    // generate_node.sw = Box::new(processed_new_leaf)
+                    generate_node.sw = Box::new(generate_node.sw.insert(new_data_updated, buffer));
+                    // generate_node.quad_location = Some(Quadrant::Sw);
                 },
                 Quadrant::Se => {
-                    generate_node.se = Box::new(processed_new_leaf)
+                    // generate_node.se = Box::new(processed_new_leaf)
+                    generate_node.se = Box::new(generate_node.se.insert(new_data_updated, buffer));
+                    // generate_node.quad_location = Some(Quadrant::Se);
                 },
             }
             
+            // let node_location = Quadrant::Nw;
+            // generate_node.draw(buffer, node_location);
             Branch::Node(generate_node)
         }
     }
@@ -351,20 +416,18 @@ impl Branch {
     fn insert(&mut self, data: (u32, u32), buffer: &mut Vec<usize>) -> Branch {
         match self {
             Branch::Leaf(leaf) => {
-                // println!("leaf branch is firing!");
-                leaf.insert(data)
+                leaf.insert(data, buffer)
             },
             Branch::Node(node) => {
-                println!("node branch is firing!");
                 node.insert(data, buffer)
             },
         }
     }
 
-    fn draw(&self, buffer: &mut Vec<usize>) {
+    fn draw(&self, buffer: &mut Vec<usize>, location: Quadrant) {
         match self {
             Branch::Leaf(leaf) => leaf.draw(),
-            Branch::Node(node) => node.draw(buffer),
+            Branch::Node(node) => node.draw(buffer, location),
         }
     }
 }
@@ -391,7 +454,7 @@ impl Circle {
     }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 enum Quadrant {
     Nw,
     Ne,
