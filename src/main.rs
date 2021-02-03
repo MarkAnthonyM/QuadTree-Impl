@@ -27,7 +27,7 @@ impl SandBox {
         let _height = SCREEN_HEIGHT as u8;
         let mut initial_state = vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize];
         let circle = Circle::new(20, 50, 1);
-        let circle_2 = Circle::new(40, 30, 1);
+        let circle_2 = Circle::new(50, 30, 1);
         let circle_3 = Circle::new(25, 20, 1);
         let circle_4 = Circle::new(90, 40, -1);
         let circle_5 = Circle::new(85, 40, -1);
@@ -173,6 +173,7 @@ impl QuadTree {
     }
 
     fn insert(&mut self, data: (u32, u32), buffer: &mut Vec<usize>) -> Branch {
+        println!("quad insert fired!");
         let quad_location = Quadrant::check_quadrant(data, self.width, self.height);
         // println!("{:?}", quad_location);
         // println!("{:?}", data);
@@ -440,17 +441,24 @@ impl Leaf {
             // Identify node quadrant that current circle resides in and insert
             // into node
             match Quadrant::check_quadrant(current_coord, split_width, split_height) {
+                // Adjust current circle coordinates by quadrant width/height.
+                // Depending on quadrant circle is found in, width/height will
+                // be subtracted from coordinate
                 Quadrant::Nw => {
-                    node.nw = Box::new(node.nw.insert(current_coord, buffer));
+                    let adjusted_coord = current_coord;
+                    node.nw = Box::new(node.nw.insert(adjusted_coord, buffer));
                 },
                 Quadrant::Ne => {
-                    node.ne = Box::new(node.ne.insert(current_coord, buffer));
+                    let adjusted_coord = (current_coord.0 - split_width, current_coord.1);
+                    node.ne = Box::new(node.ne.insert(adjusted_coord, buffer));
                 },
                 Quadrant::Sw => {
-                    node.sw = Box::new(node.sw.insert(current_coord, buffer));
+                    let adjusted_coord = (current_coord.0, current_coord.1 - split_height);
+                    node.sw = Box::new(node.sw.insert(adjusted_coord, buffer));
                 },
                 Quadrant::Se => {
-                    node.se = Box::new(node.se.insert(current_coord, buffer));
+                    let adjusted_coord = (current_coord.0 - split_width, current_coord.1 - split_height);
+                    node.se = Box::new(node.se.insert(adjusted_coord, buffer));
                 }
             }
 
@@ -458,16 +466,23 @@ impl Leaf {
             // into node
             match Quadrant::check_quadrant(new_coord, split_width, split_height) {
                 Quadrant::Nw => {
-                    node.nw = Box::new(node.nw.insert(new_coord, buffer));
+                // Adjust new circle coordinates by quadrant width/height.
+                // Depending on quadrant circle is found in, width/height will
+                // be subtracted from coordinate
+                    let adjusted_coord = new_coord;
+                    node.nw = Box::new(node.nw.insert(adjusted_coord, buffer));
                 },
                 Quadrant::Ne => {
-                    node.ne = Box::new(node.ne.insert(new_coord, buffer));
+                    let adjusted_coord = (new_coord.0 - split_width, new_coord.1);
+                    node.ne = Box::new(node.ne.insert(adjusted_coord, buffer));
                 },
                 Quadrant::Sw => {
-                    node.sw = Box::new(node.sw.insert(new_coord, buffer));
+                    let adjusted_coord = (new_coord.0, new_coord.1 - split_height);
+                    node.sw = Box::new(node.sw.insert(adjusted_coord, buffer));
                 },
                 Quadrant::Se => {
-                    node.se = Box::new(node.se.insert(new_coord, buffer));
+                    let adjusted_coord = (new_coord.0 - split_width, new_coord.1 - split_height);
+                    node.se = Box::new(node.se.insert(adjusted_coord, buffer));
                 }
             }
 
