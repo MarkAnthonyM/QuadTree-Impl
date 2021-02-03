@@ -82,7 +82,7 @@ impl SandBox {
                 let current_coords = (circle.coordinates.x, circle.coordinates.y);
                 root = root.insert(current_coords, &mut self.buffer);
                 // root.draw(&mut self.buffer);
-                // println!("{:#?}", root);
+                println!("{:#?}", root);
                 // if iter_count == 1 {
                 //     // println!("{:#?}", root);
                 //     panic!("this is a test");
@@ -437,23 +437,20 @@ impl Leaf {
                 }
             }
 
-            let check_quad = Quadrant::check_quadrant(current_coord, split_width, split_height);
-            println!("{:?}", check_quad);
-
             // Identify node quadrant that current circle resides in and insert
             // into node
             match Quadrant::check_quadrant(current_coord, split_width, split_height) {
                 Quadrant::Nw => {
-                    node.nw.insert(current_coord, buffer);
+                    node.nw = Box::new(node.nw.insert(current_coord, buffer));
                 },
                 Quadrant::Ne => {
-                    node.ne.insert(current_coord, buffer);
+                    node.ne = Box::new(node.ne.insert(current_coord, buffer));
                 },
                 Quadrant::Sw => {
-                    node.sw.insert(current_coord, buffer);
+                    node.sw = Box::new(node.sw.insert(current_coord, buffer));
                 },
                 Quadrant::Se => {
-                    node.se.insert(current_coord, buffer);
+                    node.se = Box::new(node.se.insert(current_coord, buffer));
                 }
             }
 
@@ -461,16 +458,16 @@ impl Leaf {
             // into node
             match Quadrant::check_quadrant(new_coord, split_width, split_height) {
                 Quadrant::Nw => {
-                    node.nw.insert(new_coord, buffer);
+                    node.nw = Box::new(node.nw.insert(new_coord, buffer));
                 },
                 Quadrant::Ne => {
-                    node.ne.insert(new_coord, buffer);
+                    node.ne = Box::new(node.ne.insert(new_coord, buffer));
                 },
                 Quadrant::Sw => {
-                    node.sw.insert(new_coord, buffer);
+                    node.sw = Box::new(node.sw.insert(new_coord, buffer));
                 },
                 Quadrant::Se => {
-                    node.se.insert(new_coord, buffer);
+                    node.se = Box::new(node.se.insert(new_coord, buffer));
                 }
             }
 
