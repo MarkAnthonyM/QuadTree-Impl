@@ -106,42 +106,6 @@ impl SandBox {
     QuadTree Logic
 ********************/
 
-// struct QuadTree<T> {
-//     area: Vec<usize>,
-//     point_count: u8,
-//     point_limit: u8,
-//     nw: Option<T>,
-//     ne: Option<T>,
-//     sw: Option<T>,
-//     se: Option<T>,
-// }
-
-// impl<T> QuadTree<T> {
-//     fn new() -> Self {
-//         QuadTree {
-//             area: vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize],
-//             point_count: 0,
-//             point_limit: 1,
-//             nw: None,
-//             ne: None,
-//             sw: None,
-//             se: None,
-//         }
-//     }
-
-//     fn insert(self) {
-//         if self.point_count > 2 {
-//             todo!();
-//         } else if self.point_count > 0 {
-//             todo!();
-//         }
-//     }
-
-//     fn draw(&mut self, frame: &mut [u8]) {
-//         todo!()
-//     }
-// }
-
 #[derive(Clone, Debug)]
 struct QuadTree {
     area: u32,
@@ -175,32 +139,23 @@ impl QuadTree {
     fn insert(&mut self, data: (u32, u32), buffer: &mut Vec<usize>) -> Branch {
         println!("quad insert fired!");
         let quad_location = Quadrant::check_quadrant(data, self.width, self.height);
-        // println!("{:?}", quad_location);
-        // println!("{:?}", data);
-        // println!("{:?}", quad_location);
-        // println!("{:?}", self.width);
         //TODO: Fix bug when inserting to node. Try checking children of parent node
         // for a subnode. If found, adjust data coordinates before insertion
         match quad_location {
             Quadrant::Nw => {
                 self.nw = Box::new(self.nw.insert(data,buffer));
-                // self.nw.draw(buffer);
             },
             Quadrant::Ne => {
                 self.ne = Box::new(self.ne.insert(data,buffer));
-                // self.ne.draw(buffer);
             },
             Quadrant::Sw => {
                 self.sw = Box::new(self.sw.insert(data,buffer));
-                // self.sw.draw(buffer);
             },
             Quadrant::Se => {
                 self.se = Box::new(self.se.insert(data,buffer));
-                // self.se.draw(buffer);
             },
         }
 
-        // self.draw(buffer);
         Branch::Node(self.clone())
     }
 
@@ -242,16 +197,6 @@ impl QuadTree {
                 }
             }
         }
-        // if self.sub_node {
-        //     match *self.nw {
-        //         Branch::Leaf(ref _asdf) => {
-        //             println!("oof");
-        //         },
-        //         Branch::Node(ref node) => {
-        //             node.draw(buffer);
-        //         }
-        //     }
-        // }
     }
 }
 
