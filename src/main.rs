@@ -80,9 +80,9 @@ impl SandBox {
             let mut iter_count = 0;
             for circle in self.circles.iter() {
                 let current_coords = (circle.coordinates.x, circle.coordinates.y);
-                root = root.insert(current_coords, &mut self.buffer);
+                root = root.insert(current_coords, None, &mut self.buffer);
                 // root.draw(&mut self.buffer);
-                println!("{:#?}", root);
+                // println!("{:#?}", root);
                 // if iter_count == 1 {
                 //     // println!("{:#?}", root);
                 //     panic!("this is a test");
@@ -143,16 +143,16 @@ impl QuadTree {
         // for a subnode. If found, adjust data coordinates before insertion
         match quad_location {
             Quadrant::Nw => {
-                self.nw = Box::new(self.nw.insert(data,buffer));
+                self.nw = Box::new(self.nw.insert(data, None, buffer));
             },
             Quadrant::Ne => {
-                self.ne = Box::new(self.ne.insert(data,buffer));
+                self.ne = Box::new(self.ne.insert(data, None, buffer));
             },
             Quadrant::Sw => {
-                self.sw = Box::new(self.sw.insert(data,buffer));
+                self.sw = Box::new(self.sw.insert(data, None, buffer));
             },
             Quadrant::Se => {
-                self.se = Box::new(self.se.insert(data,buffer));
+                self.se = Box::new(self.se.insert(data, None, buffer));
             },
         }
 
@@ -205,6 +205,7 @@ struct Leaf {
     width: u32,
     height: u32,
     area: u32,
+    adjusted_data_point: Option<(u32, u32)>,
     data_point: Option<(u32, u32)>,
     is_empty: bool,
 }
@@ -215,6 +216,7 @@ impl Leaf {
             width,
             height,
             area: width * height,
+            adjusted_data_point: None,
             data_point: None,
             is_empty: true,
         }
@@ -351,9 +353,12 @@ impl Leaf {
     //     }
     // }
 
-    fn insert(&mut self, new_coord: (u32, u32), buffer: &mut Vec<usize>) -> Branch {
+    fn insert(&mut self, new_coord: (u32, u32), adjusted_data: Option<(u32, u32)>, buffer: &mut Vec<usize>) -> Branch {
         if self.is_empty {
             let mut leaf = Leaf::new(self.width, self.height);
+            if adjusted_data.is_some() {
+                leaf.adjusted_data_point = adjusted_data;
+            }
             leaf.data_point = Some(new_coord);
             leaf.is_empty = false;
 
@@ -363,8 +368,16 @@ impl Leaf {
             let split_width = self.width / 2;
             let split_height = self.height / 2;
 
-            // Gather coordinate data of leaf being inserted upon
-            let current_coord = self.data_point.unwrap();
+            // Gather original coordinate data of leaf being inserted upon
+            let original_coord = self.data_point.unwrap();
+
+            // Gather adjusted coordinate data, if any
+            let current_coord = if let Some(coord) = adjusted_data {
+                coord
+            } else {
+                self.data_point.unwrap()
+            };
+            println!("{:?}", current_coord);
 
             let mut node = QuadTree::new(split_width, split_height);
 
@@ -394,19 +407,19 @@ impl Leaf {
                 // be subtracted from coordinate
                 Quadrant::Nw => {
                     let adjusted_coord = current_coord;
-                    node.nw = Box::new(node.nw.insert(adjusted_coord, buffer));
+                    node.nw = Box::new(node.nw.insert(current_coord, Some(adjusted_coord), buffer));
                 },
                 Quadrant::Ne => {
                     let adjusted_coord = (current_coord.0 - split_width, current_coord.1);
-                    node.ne = Box::new(node.ne.insert(adjusted_coord, buffer));
+                    node.ne = Box::new(node.ne.insert(current_coord, Some(adjusted_coord), buffer));
                 },
                 Quadrant::Sw => {
                     let adjusted_coord = (current_coord.0, current_coord.1 - split_height);
-                    node.sw = Box::new(node.sw.insert(adjusted_coord, buffer));
+                    node.sw = Box::new(node.sw.insert(current_coord, Some(adjusted_coord), buffer));
                 },
                 Quadrant::Se => {
                     let adjusted_coord = (current_coord.0 - split_width, current_coord.1 - split_height);
-                    node.se = Box::new(node.se.insert(adjusted_coord, buffer));
+                    node.se = Box::new(node.se.insert(current_coord, Some(adjusted_coord), buffer));
                 }
             }
 
@@ -418,19 +431,19 @@ impl Leaf {
                 // Depending on quadrant circle is found in, width/height will
                 // be subtracted from coordinate
                     let adjusted_coord = new_coord;
-                    node.nw = Box::new(node.nw.insert(adjusted_coord, buffer));
+                    node.nw = Box::new(node.nw.insert(new_coord, Some(adjusted_coord), buffer));
                 },
                 Quadrant::Ne => {
                     let adjusted_coord = (new_coord.0 - split_width, new_coord.1);
-                    node.ne = Box::new(node.ne.insert(adjusted_coord, buffer));
+                    node.ne = Box::new(node.ne.insert(new_coord, Some(adjusted_coord), buffer));
                 },
                 Quadrant::Sw => {
                     let adjusted_coord = (new_coord.0, new_coord.1 - split_height);
-                    node.sw = Box::new(node.sw.insert(adjusted_coord, buffer));
+                    node.sw = Box::new(node.sw.insert(new_coord, Some(adjusted_coord), buffer));
                 },
                 Quadrant::Se => {
                     let adjusted_coord = (new_coord.0 - split_width, new_coord.1 - split_height);
-                    node.se = Box::new(node.se.insert(adjusted_coord, buffer));
+                    node.se = Box::new(node.se.insert(new_coord, Some(adjusted_coord), buffer));
                 }
             }
 
@@ -446,10 +459,10 @@ enum Branch {
 }
 
 impl Branch {
-    fn insert(&mut self, data: (u32, u32), buffer: &mut Vec<usize>) -> Branch {
+    fn insert(&mut self, data: (u32, u32), adjusted_data: Option<(u32, u32)>, buffer: &mut Vec<usize>) -> Branch {
         match self {
             Branch::Leaf(leaf) => {
-                leaf.insert(data, buffer)
+                leaf.insert(data, adjusted_data, buffer)
             },
             Branch::Node(node) => {
                 node.insert(data, buffer)
