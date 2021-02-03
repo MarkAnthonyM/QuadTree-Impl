@@ -538,11 +538,11 @@ enum Quadrant {
 impl Quadrant {
     fn check_quadrant(obj_coord: (u32, u32), width: u32, height: u32) -> Quadrant {
         let (current_x, current_y) = (obj_coord.0, obj_coord.1);
-        if current_x < width && current_y < height {
+        if current_x <= width && current_y <= height {
             return Quadrant::Nw
-        } else if current_x > width && current_y < height {
+        } else if current_x >= width && current_y <= height {
             return Quadrant::Ne
-        } else if current_x < width && current_y > height {
+        } else if current_x <= width && current_y >= height {
             return Quadrant::Sw
         } else {
             return Quadrant::Se
