@@ -423,6 +423,9 @@ impl Leaf {
 
             let mut node = QuadTree::new(split_width, split_height);
 
+            //TODO: Need to figure out how to shift sub-node cross section
+            // drawing to correct parent quadrant
+
             // Node draw routine
             for y in 0..self.height {
                 for x in 0..self.width {
