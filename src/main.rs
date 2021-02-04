@@ -372,12 +372,11 @@ impl Leaf {
             let original_coord = self.data_point.unwrap();
 
             // Gather adjusted coordinate data, if any
-            let current_coord = if let Some(coord) = adjusted_data {
+            let current_coord = if let Some(coord) = self.adjusted_data_point {
                 coord
             } else {
                 self.data_point.unwrap()
             };
-            println!("{:?}", current_coord);
 
             let mut node = QuadTree::new(split_width, split_height);
 
@@ -407,19 +406,19 @@ impl Leaf {
                 // be subtracted from coordinate
                 Quadrant::Nw => {
                     let adjusted_coord = current_coord;
-                    node.nw = Box::new(node.nw.insert(current_coord, Some(adjusted_coord), buffer));
+                    node.nw = Box::new(node.nw.insert(original_coord, Some(adjusted_coord), buffer));
                 },
                 Quadrant::Ne => {
                     let adjusted_coord = (current_coord.0 - split_width, current_coord.1);
-                    node.ne = Box::new(node.ne.insert(current_coord, Some(adjusted_coord), buffer));
+                    node.ne = Box::new(node.ne.insert(original_coord, Some(adjusted_coord), buffer));
                 },
                 Quadrant::Sw => {
                     let adjusted_coord = (current_coord.0, current_coord.1 - split_height);
-                    node.sw = Box::new(node.sw.insert(current_coord, Some(adjusted_coord), buffer));
+                    node.sw = Box::new(node.sw.insert(original_coord, Some(adjusted_coord), buffer));
                 },
                 Quadrant::Se => {
                     let adjusted_coord = (current_coord.0 - split_width, current_coord.1 - split_height);
-                    node.se = Box::new(node.se.insert(current_coord, Some(adjusted_coord), buffer));
+                    node.se = Box::new(node.se.insert(original_coord, Some(adjusted_coord), buffer));
                 }
             }
 
