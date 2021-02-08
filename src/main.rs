@@ -371,11 +371,18 @@ impl Leaf {
             // Gather original coordinate data of leaf being inserted upon
             let original_coord = self.data_point.unwrap();
 
-            // Gather adjusted coordinate data, if any
+            // Gather adjusted data for current coordinates, if any
             let current_coord = if let Some(coord) = self.adjusted_data_point {
                 coord
             } else {
                 self.data_point.unwrap()
+            };
+
+            // Gather adjusted data for new coordinates, if any
+            let new_coord_adjusted = if let Some(coord) = adjusted_data {
+                coord
+            } else {
+                new_coord
             };
 
             let mut node = QuadTree::new(split_width, split_height);
@@ -424,24 +431,24 @@ impl Leaf {
 
             // Identify node quadrant that new circle resides in and insert
             // into node
-            match Quadrant::check_quadrant(new_coord, split_width, split_height) {
+            match Quadrant::check_quadrant(new_coord_adjusted, split_width, split_height) {
                 Quadrant::Nw => {
                 // Adjust new circle coordinates by quadrant width/height.
                 // Depending on quadrant circle is found in, width/height will
                 // be subtracted from coordinate
-                    let adjusted_coord = new_coord;
+                    let adjusted_coord = new_coord_adjusted;
                     node.nw = Box::new(node.nw.insert(new_coord, Some(adjusted_coord), buffer));
                 },
                 Quadrant::Ne => {
-                    let adjusted_coord = (new_coord.0 - split_width, new_coord.1);
+                    let adjusted_coord = (new_coord_adjusted.0 - split_width, new_coord_adjusted.1);
                     node.ne = Box::new(node.ne.insert(new_coord, Some(adjusted_coord), buffer));
                 },
                 Quadrant::Sw => {
-                    let adjusted_coord = (new_coord.0, new_coord.1 - split_height);
+                    let adjusted_coord = (new_coord_adjusted.0, new_coord_adjusted.1 - split_height);
                     node.sw = Box::new(node.sw.insert(new_coord, Some(adjusted_coord), buffer));
                 },
                 Quadrant::Se => {
-                    let adjusted_coord = (new_coord.0 - split_width, new_coord.1 - split_height);
+                    let adjusted_coord = (new_coord_adjusted.0 - split_width, new_coord_adjusted.1 - split_height);
                     node.se = Box::new(node.se.insert(new_coord, Some(adjusted_coord), buffer));
                 }
             }
