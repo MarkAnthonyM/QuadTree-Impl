@@ -32,12 +32,10 @@ impl SandBox {
         let circle_4 = Circle::new(90, 40, -1);
         let circle_5 = Circle::new(85, 40, -1);
         let frame_count = 0;
-
-        // initial_state[(circle.coordinates.y * width + circle.coordinates.x) as usize] = circle.color;
         
         SandBox {
             buffer: initial_state,
-            circles: vec![circle_2, circle_3],
+            circles: vec![circle, circle_2, circle_3, circle_4, circle_5],
             frame_count,
         }
     }
@@ -80,14 +78,7 @@ impl SandBox {
             let mut iter_count = 0;
             for circle in self.circles.iter() {
                 let current_coords = (circle.coordinates.x, circle.coordinates.y);
-                root = root.insert(current_coords, None, &mut self.buffer);
-                // root.draw(&mut self.buffer);
-                // println!("{:#?}", root);
-                // if iter_count == 1 {
-                //     // println!("{:#?}", root);
-                //     panic!("this is a test");
-                // }
-                // iter_count += 1;
+                root = root.insert(current_coords, None, None, &mut self.buffer);
             }
         }
 
@@ -137,22 +128,32 @@ impl QuadTree {
     }
 
     fn insert(&mut self, data: (u32, u32), buffer: &mut Vec<usize>) -> Branch {
-        println!("quad insert fired!");
+        // Check new data coordinate for residing quadrant
         let quad_location = Quadrant::check_quadrant(data, self.width, self.height);
-        //TODO: Fix bug when inserting to node. Try checking children of parent node
-        // for a subnode. If found, adjust data coordinates before insertion
+
+        // Match against data quadrant location. Adjusted coordinate data used for
+        // placing data points into proper nodes/sub nodes
+        // quadrant variable used for drawing routine
         match quad_location {
             Quadrant::Nw => {
-                self.nw = Box::new(self.nw.insert(data, None, buffer));
+                let adjusted_coord = data;
+                let quadrant = Quadrant::Nw;
+                self.nw = Box::new(self.nw.insert(data, Some(adjusted_coord), Some(quadrant), buffer));
             },
             Quadrant::Ne => {
-                self.ne = Box::new(self.ne.insert(data, None, buffer));
+                let adjusted_coord = (data.0 - self.width, data.1);
+                let quadrant = Quadrant::Ne;
+                self.ne = Box::new(self.ne.insert(data, Some(adjusted_coord), Some(quadrant), buffer));
             },
             Quadrant::Sw => {
-                self.sw = Box::new(self.sw.insert(data, None, buffer));
+                let adjusted_coord = (data.0, data.1 - self.height);
+                let quadrant = Quadrant::Sw;
+                self.sw = Box::new(self.sw.insert(data, Some(adjusted_coord), Some(quadrant), buffer));
             },
             Quadrant::Se => {
-                self.se = Box::new(self.se.insert(data, None, buffer));
+                let adjusted_coord = (data.0 - self.width, data.1 - self.height);
+                let quadrant = Quadrant::Se;
+                self.se = Box::new(self.se.insert(data, Some(adjusted_coord), Some(quadrant), buffer));
             },
         }
 
@@ -353,7 +354,7 @@ impl Leaf {
     //     }
     // }
 
-    fn insert(&mut self, new_coord: (u32, u32), adjusted_data: Option<(u32, u32)>, buffer: &mut Vec<usize>) -> Branch {
+    fn insert(&mut self, new_coord: (u32, u32), adjusted_data: Option<(u32, u32)>, quadrant: Option<Quadrant>, buffer: &mut Vec<usize>) -> Branch {
         if self.is_empty {
             let mut leaf = Leaf::new(self.width, self.height);
             if adjusted_data.is_some() {
@@ -389,17 +390,28 @@ impl Leaf {
 
             //TODO: Need to figure out how to shift sub-node cross section
             // drawing to correct parent quadrant
+            let shift_drawing = match quadrant {
+                Some(area) => {
+                    match area {
+                        Quadrant::Nw => (0, 0),
+                        Quadrant::Ne => (self.width, 0),
+                        Quadrant::Sw => (0, self.height),
+                        Quadrant::Se => (self.width, self.height),
+                    }
+                },
+                None => (0, 0),
+            };
 
             // Node draw routine
             for y in 0..self.height {
                 for x in 0..self.width {
                     if x == split_width {
-                        let src = y * SCREEN_WIDTH + x;
+                        let src = (y + shift_drawing.1) * SCREEN_WIDTH + (x + shift_drawing.0);
                         buffer[src as usize] = 1;
                     }
 
                     if y == split_height {
-                        let src = y * SCREEN_WIDTH + x;
+                        let src = (y + shift_drawing.1) * SCREEN_WIDTH + (x + shift_drawing.0);
                         buffer[src as usize] = 1;
                     }
                 }
@@ -410,46 +422,54 @@ impl Leaf {
             match Quadrant::check_quadrant(current_coord, split_width, split_height) {
                 // Adjust current circle coordinates by quadrant width/height.
                 // Depending on quadrant circle is found in, width/height will
-                // be subtracted from coordinate
+                // be subtracted from coordinate.
+                // Adjusted coordinate data used to place object into
+                // proper node/sub node
                 Quadrant::Nw => {
                     let adjusted_coord = current_coord;
-                    node.nw = Box::new(node.nw.insert(original_coord, Some(adjusted_coord), buffer));
+                    node.nw = Box::new(node.nw.insert(original_coord, Some(adjusted_coord), None, buffer));
                 },
                 Quadrant::Ne => {
                     let adjusted_coord = (current_coord.0 - split_width, current_coord.1);
-                    node.ne = Box::new(node.ne.insert(original_coord, Some(adjusted_coord), buffer));
+                    node.ne = Box::new(node.ne.insert(original_coord, Some(adjusted_coord), None, buffer));
                 },
                 Quadrant::Sw => {
                     let adjusted_coord = (current_coord.0, current_coord.1 - split_height);
-                    node.sw = Box::new(node.sw.insert(original_coord, Some(adjusted_coord), buffer));
+                    node.sw = Box::new(node.sw.insert(original_coord, Some(adjusted_coord), None, buffer));
                 },
                 Quadrant::Se => {
                     let adjusted_coord = (current_coord.0 - split_width, current_coord.1 - split_height);
-                    node.se = Box::new(node.se.insert(original_coord, Some(adjusted_coord), buffer));
+                    node.se = Box::new(node.se.insert(original_coord, Some(adjusted_coord), None, buffer));
                 }
             }
 
             // Identify node quadrant that new circle resides in and insert
             // into node
             match Quadrant::check_quadrant(new_coord_adjusted, split_width, split_height) {
-                Quadrant::Nw => {
                 // Adjust new circle coordinates by quadrant width/height.
                 // Depending on quadrant circle is found in, width/height will
-                // be subtracted from coordinate
+                // be subtracted from coordinate.
+                // Adjusted coordinate data used to place object into
+                // proper node/sub node
+                Quadrant::Nw => {
                     let adjusted_coord = new_coord_adjusted;
-                    node.nw = Box::new(node.nw.insert(new_coord, Some(adjusted_coord), buffer));
+                    let quadrant = Quadrant::Nw;
+                    node.nw = Box::new(node.nw.insert(new_coord, Some(adjusted_coord), Some(quadrant), buffer));
                 },
                 Quadrant::Ne => {
                     let adjusted_coord = (new_coord_adjusted.0 - split_width, new_coord_adjusted.1);
-                    node.ne = Box::new(node.ne.insert(new_coord, Some(adjusted_coord), buffer));
+                    let quadrant = Quadrant::Ne;
+                    node.ne = Box::new(node.ne.insert(new_coord, Some(adjusted_coord), Some(quadrant), buffer));
                 },
                 Quadrant::Sw => {
                     let adjusted_coord = (new_coord_adjusted.0, new_coord_adjusted.1 - split_height);
-                    node.sw = Box::new(node.sw.insert(new_coord, Some(adjusted_coord), buffer));
+                    let quadrant = Quadrant::Sw;
+                    node.sw = Box::new(node.sw.insert(new_coord, Some(adjusted_coord), Some(quadrant), buffer));
                 },
                 Quadrant::Se => {
                     let adjusted_coord = (new_coord_adjusted.0 - split_width, new_coord_adjusted.1 - split_height);
-                    node.se = Box::new(node.se.insert(new_coord, Some(adjusted_coord), buffer));
+                    let quadrant = Quadrant::Se;
+                    node.se = Box::new(node.se.insert(new_coord, Some(adjusted_coord), Some(quadrant), buffer));
                 }
             }
 
@@ -465,10 +485,10 @@ enum Branch {
 }
 
 impl Branch {
-    fn insert(&mut self, data: (u32, u32), adjusted_data: Option<(u32, u32)>, buffer: &mut Vec<usize>) -> Branch {
+    fn insert(&mut self, data: (u32, u32), adjusted_data: Option<(u32, u32)>, quadrant: Option<Quadrant>, buffer: &mut Vec<usize>) -> Branch {
         match self {
             Branch::Leaf(leaf) => {
-                leaf.insert(data, adjusted_data, buffer)
+                leaf.insert(data, adjusted_data, quadrant, buffer)
             },
             Branch::Node(node) => {
                 node.insert(data, buffer)
