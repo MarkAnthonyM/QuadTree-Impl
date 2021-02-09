@@ -1,6 +1,5 @@
 use log::{ debug, error };
 use pixels::{ Error, Pixels, SurfaceTexture };
-use std::rc::Rc;
 use std::{ thread, time };
 use winit::dpi::{ LogicalPosition, LogicalSize, PhysicalSize };
 use winit::event::{ Event, VirtualKeyCode };
@@ -23,9 +22,9 @@ struct SandBox {
 
 impl SandBox {
     fn new() -> Self {
-        let width = SCREEN_WIDTH as u32;
+        let _width = SCREEN_WIDTH as u32;
         let _height = SCREEN_HEIGHT as u8;
-        let mut initial_state = vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize];
+        let initial_state = vec![0; (SCREEN_WIDTH * SCREEN_HEIGHT) as usize];
         let circle = Circle::new(20, 50, 1);
         let circle_2 = Circle::new(50, 30, 1);
         let circle_3 = Circle::new(25, 20, 1);
@@ -75,7 +74,6 @@ impl SandBox {
         if !self.circles.is_empty() {
             let leaf = Leaf::new(SCREEN_WIDTH, SCREEN_HEIGHT);
             let mut root = Branch::Leaf(leaf);
-            let mut iter_count = 0;
             for circle in self.circles.iter() {
                 let current_coords = (circle.coordinates.x, circle.coordinates.y);
                 root = root.insert(current_coords, None, None, &mut self.buffer);
@@ -159,46 +157,6 @@ impl QuadTree {
 
         Branch::Node(self.clone())
     }
-
-    fn draw(&self, buffer: &mut Vec<usize>, location: Quadrant) {
-        // Set total height/width of pixel buffer
-        let width = self.width * 2;
-        let height = self.height * 2;
-        // let draw_area = match self.quad_location {
-        //     Some(ref quadrant) => {
-        //         match quadrant {
-        //             Quadrant::Nw => (0, 0),
-        //             Quadrant::Ne => (self.width / 2, 0),
-        //             Quadrant::Sw => (0, self.height / 2),
-        //             Quadrant::Se => (self.width /2, self.height / 2),
-        //         }
-        //     },
-        //     None => {
-        //         (0, 0)
-        //     }
-        // };
-        let shift_point = match location {
-            Quadrant::Nw => (0, 0),
-            Quadrant::Ne => (self.width * 2, 0),
-            Quadrant::Sw => (0, self.height),
-            Quadrant::Se => (self.width, self.height),
-        };
-        
-        // Fill quadtree cross section
-        for y in 0..height {
-            for x in 0..width {
-                if x == self.width {
-                    let src = ((y + shift_point.1) * SCREEN_WIDTH + (x + shift_point.0)) as usize;
-                    buffer[src] = 1;
-                }
-
-                if y == self.height {
-                    let src = ((y + shift_point.1) * SCREEN_WIDTH + (x + shift_point.0)) as usize;
-                    buffer[src] = 1;
-                }
-            }
-        }
-    }
 }
 
 #[derive(Clone, Debug)]
@@ -222,137 +180,6 @@ impl Leaf {
             is_empty: true,
         }
     }
-
-    fn draw(&self) {
-        let noooooooo = 0;
-    }
-
-    //TODO: Find way to adjust point coordinates based
-    // on quadrant point resides in
-    // fn insert(&mut self, obj: (u32, u32), buffer: &mut Vec<usize>) -> Branch {
-    //     if self.is_empty {
-    //         // self.data_point = Some(obj);
-    //         // self.is_empty = false;
-    //         let mut leaf = Leaf::new(self.width, self.height);
-    //         leaf.data_point = Some(obj);
-    //         leaf.is_empty = false;
-
-    //         Branch::Leaf(leaf)
-    //     } else {
-    //         // Split areas
-    //         let split_width = self.width / 2;
-    //         let split_height = self.height / 2;
-    //         // Find previous data's old quadrant
-    //         // Adjust previous data's coordiantes based on old quadrant
-    //         let prev_data = self.data_point.unwrap();
-    //         println!("{:?}", self.width);
-    //         let prev_data_updated = match Quadrant::check_quadrant(prev_data, self.width, self.height) {
-    //             Quadrant::Nw => prev_data,
-    //             Quadrant::Ne => (prev_data.0 - self.width, prev_data.1),
-    //             Quadrant::Sw => (prev_data.0, prev_data.1 - self.height),
-    //             //BUG: Hitting overflow problem here
-    //             Quadrant::Se => (prev_data.0 - self.width, prev_data.1 - self.height),
-    //         };
-    //         // Adjust new data's coordinates given current parent node
-    //         let new_data_updated = match Quadrant::check_quadrant(obj, self.width, self.height) {
-    //             Quadrant::Nw => obj,
-    //             Quadrant::Ne => (obj.0 - self.width, obj.1),
-    //             Quadrant::Sw => (obj.0, obj.1 - self.height),
-    //             Quadrant::Se => (obj.0 - self.width, obj.1 - self.height),
-    //         };
-    //         // Initialze previous and new leaf using previous and new data
-    //         let mut prev_leaf = Leaf::new(split_width, split_height);
-    //         let mut new_leaf = Leaf::new(split_width, split_height);
-    //         // Recursive magic starts here
-    //         let processed_prev_leaf = prev_leaf.insert(prev_data_updated, buffer);
-    //         let processed_new_leaf = new_leaf.insert(new_data_updated, buffer);
-
-    //         // Generate New node, and store new and previous leaf structs
-    //         //TODO: QuadTree node is generating with wrong area. Does it even
-    //         // need data about 2D area? Find out.
-    //         let mut generate_node = QuadTree::new(split_width, split_height);
-    //         //TODO: Should maybe insert into QuadTree node here?
-    //         // let mut generate_node = QuadTree::new(self.width, self.height);
-    //         // Draw routine
-    //         let draw_quad = Quadrant::check_quadrant(obj, generate_node.width, generate_node.height);
-    //         let draw_width = generate_node.width;
-    //         let draw_height = generate_node.height;
-    //         for y in 0..draw_height * 2 {
-    //             for x in 0..draw_width * 2 {
-    //                 if x == draw_width {
-    //                     let src = y * SCREEN_WIDTH + x;
-    //                     buffer[src as usize] = 1;
-    //                 }
-
-    //                 if y == draw_height {
-    //                     let src = y * SCREEN_WIDTH + x;
-    //                     buffer[src as usize] = 1;
-    //                 }
-    //             }
-    //         }
-    //         // Find new quadrants based on point's adjusted coordinates
-    //         let prev_quadrant = Quadrant::check_quadrant(prev_data_updated, split_width, split_height);
-    //         let new_quandrant = Quadrant::check_quadrant(new_data_updated, split_width, split_height);
-    //         match prev_quadrant {
-    //             Quadrant::Nw => {
-    //                 generate_node.nw = Box::new(processed_prev_leaf)
-    //             },
-    //             Quadrant::Ne => {
-    //                 generate_node.ne = Box::new(processed_prev_leaf)
-    //             },
-    //             Quadrant::Sw => {
-    //                 generate_node.sw = Box::new(processed_prev_leaf)
-    //             },
-    //             Quadrant::Se => {
-    //                 generate_node.se = Box::new(processed_prev_leaf)
-    //             },
-    //         }
-
-    //         //TODO: Fix bug in logic here. Logic currently overwrites previous leaf
-    //         // if one exists in the same quadrant as the new leaf. Probably need to make use
-    //         // of recursive insert logic here?
-    //         match new_quandrant {
-    //             Quadrant::Nw => {
-    //                 // generate_node.nw = Box::new(processed_new_leaf)
-    //                 generate_node.nw = Box::new(generate_node.nw.insert(new_data_updated, buffer));
-    //                 match *generate_node.nw {
-    //                     Branch::Leaf(_) => {},
-    //                     Branch::Node(ref node) => {
-    //                         let node_location = Quadrant::Nw;
-    //                         // node.draw(buffer, node_location);
-    //                     }
-    //                 }
-    //                 // generate_node.quad_location = Some(Quadrant::Nw);
-    //             },
-    //             Quadrant::Ne => {
-    //                 // generate_node.ne = Box::new(processed_new_leaf);
-    //                 generate_node.ne = Box::new(generate_node.ne.insert(new_data_updated, buffer));
-    //                 match *generate_node.ne {
-    //                     Branch::Leaf(_) => {},
-    //                     Branch::Node(ref node) => {
-    //                         let node_location = Quadrant::Ne;
-    //                         // node.draw(buffer, node_location);
-    //                     }
-    //                 }
-    //                 // generate_node.quad_location = Some(Quadrant::Ne);
-    //             },
-    //             Quadrant::Sw => {
-    //                 // generate_node.sw = Box::new(processed_new_leaf)
-    //                 generate_node.sw = Box::new(generate_node.sw.insert(new_data_updated, buffer));
-    //                 // generate_node.quad_location = Some(Quadrant::Sw);
-    //             },
-    //             Quadrant::Se => {
-    //                 // generate_node.se = Box::new(processed_new_leaf)
-    //                 generate_node.se = Box::new(generate_node.se.insert(new_data_updated, buffer));
-    //                 // generate_node.quad_location = Some(Quadrant::Se);
-    //             },
-    //         }
-            
-    //         // let node_location = Quadrant::Nw;
-    //         // generate_node.draw(buffer, node_location);
-    //         Branch::Node(generate_node)
-    //     }
-    // }
 
     fn insert(&mut self, new_coord: (u32, u32), adjusted_data: Option<(u32, u32)>, quadrant: Option<Quadrant>, buffer: &mut Vec<usize>) -> Branch {
         if self.is_empty {
@@ -495,13 +322,6 @@ impl Branch {
             },
         }
     }
-
-    fn draw(&self, buffer: &mut Vec<usize>, location: Quadrant) {
-        match self {
-            Branch::Leaf(leaf) => leaf.draw(),
-            Branch::Node(node) => node.draw(buffer, location),
-        }
-    }
 }
 
 /*************************
@@ -604,7 +424,7 @@ fn create_window(
     (window, size.width.round() as u32, size.height.round() as u32, hidpi_factor)
 }
 
-fn clear(screen: &mut [u8]) {
+fn _clear(screen: &mut [u8]) {
     for (i, byte) in screen.iter_mut().enumerate() {
         *byte = if i % 4 == 3 { 255 } else { 0 };
     }
@@ -620,7 +440,7 @@ fn main() -> Result<(), Error> {
     let surface_texture = SurfaceTexture::new(p_width, p_height, &window);
     
     let mut pixels = Pixels::new(SCREEN_WIDTH, SCREEN_HEIGHT, surface_texture)?;
-    let mut paused = false;
+    let mut _paused = false;
 
     let mut draw_state: Option<bool> = None;
 
